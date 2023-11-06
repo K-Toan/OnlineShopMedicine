@@ -55,6 +55,7 @@ namespace OnlineShopMedicine.Controllers
                     //A claim is a statement about a subject by an issuer and    
                     //represent attributes of the subject that are useful in the context of authentication and authorization operations.
                     var claims = new List<Claim>() {
+                        new Claim(ClaimTypes.Sid, acc.Id.ToString()),
                         new Claim(ClaimTypes.Name, acc.Username),
                         new Claim(ClaimTypes.Role, acc.Role.Name),
                     };
@@ -67,6 +68,11 @@ namespace OnlineShopMedicine.Controllers
                     {
                         IsPersistent = model.RememberLogin
                     });
+                    //Redirect to last url before login
+                    if(model.ReturnUrl != null && model.ReturnUrl.Length > 0)
+                    {
+                        return LocalRedirect(model.ReturnUrl);
+                    }
                     return RedirectToAction("Index", "Home");
                 }
                 else
@@ -86,28 +92,44 @@ namespace OnlineShopMedicine.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        // GET: Account/Create
         public IActionResult Register()
         {
             return View();
         }
 
-        // POST: Account/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(Account account)
+        public async Task<IActionResult> Register(RegisterModel model)
         {
+            Account? acc = _context.Accounts
+                .Where(a => a.Username == model.Username)
+                .FirstOrDefault();
+            if(acc != null)
+            {
+                ViewData["Message"] = "Username existed!";
+                return View(model);
+            }
+
             if (ModelState.IsValid)
             {
+                Account account = new Account()
+                {
+                    Username = model.Username,
+                    Password = model.Password,
+                    Wallet = 0,
+                    RoleId = 1,
+                    Address = model.Address,
+                    PhoneNumber = model.PhoneNumber
+                };
                 _context.Add(account);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Login");
             }
             else
             {
-
+                ViewData["Message"] = "Something is wrong?";
             }
-            return View(account);
+            return View(model);
         }
 
         // GET: Account/Details/5
