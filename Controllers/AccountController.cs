@@ -1,14 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using OnlineShopMedicine.Models;
+using OnlineShopMedicine.ViewModels;
 
 namespace OnlineShopMedicine.Controllers
 {
+    [AllowAnonymous]
     public class AccountController : Controller
     {
         private readonly AppDbContext _context;
@@ -25,58 +31,59 @@ namespace OnlineShopMedicine.Controllers
             return View(await appDbContext.ToListAsync());
         }
 
-        // GET: Account/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null || _context.Accounts == null)
-            {
-                return NotFound();
-            }
-
-            var account = await _context.Accounts
-                .Include(a => a.Role)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (account == null)
-            {
-                return NotFound();
-            }
-
-            return View(account);
-        }
-
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string ReturnUrl = "")
         {
-            return View();
+            LoginModel model = new LoginModel();
+            model.ReturnUrl = ReturnUrl;
+            return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Login(Account account)
+        public async Task<IActionResult> Login(LoginModel model)
         {
-            string username = account.Username;
-            string password = account.Password;
-            Account acc = _context.Accounts.FirstOrDefault(a => a.Username == username);
-            if(acc == null)
+            if(ModelState.IsValid)
             {
-                // Account doesn't exist
-            }
-            else
-            {
-                if(acc.Password != password)
+                var acc = _context.Accounts
+                    .Where(a => a.Username ==  model.Username
+                                && a.Password == model.Password)
+                    .Include(a => a.Role)
+                    .FirstOrDefault();
+                if(acc != null)
                 {
-                    // Wrong password
-
+                    //A claim is a statement about a subject by an issuer and    
+                    //represent attributes of the subject that are useful in the context of authentication and authorization operations.
+                    var claims = new List<Claim>() {
+                        new Claim(ClaimTypes.Name, acc.Username),
+                        new Claim(ClaimTypes.Role, acc.Role.Name),
+                    };
+                    //Initialize a new instance of the ClaimsIdentity with the claims and authentication scheme    
+                    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    //Initialize a new instance of the ClaimsPrincipal with ClaimsIdentity    
+                    var principal = new ClaimsPrincipal(identity);
+                    //SignInAsync is a Extension method for Sign in a principal for the specified scheme.    
+                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties()
+                    {
+                        IsPersistent = model.RememberLogin
+                    });
+                    return RedirectToAction("Index", "Home");
                 }
                 else
                 {
-                    // Matched username & password
-                    HttpContext.Session.SetString("AccountId", acc.Id.ToString());
-                    Console.WriteLine(HttpContext.Session.GetString("AccountId"));
-                    return RedirectToAction("Index", "Home");
+                    ViewBag.Message = "Invalid Credential";
+                    return View(acc);
                 }
             }
-            return View(account);
+            return View();
+        }
+
+        public async Task<IActionResult> LogOut()
+        {
+            //SignOutAsync is Extension method for SignOut    
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            //Redirect to home page   
+            return RedirectToAction("Index", "Home");
         }
 
         // GET: Account/Create
@@ -100,6 +107,25 @@ namespace OnlineShopMedicine.Controllers
             {
 
             }
+            return View(account);
+        }
+
+        // GET: Account/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null || _context.Accounts == null)
+            {
+                return NotFound();
+            }
+
+            var account = await _context.Accounts
+                .Include(a => a.Role)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (account == null)
+            {
+                return NotFound();
+            }
+
             return View(account);
         }
 
