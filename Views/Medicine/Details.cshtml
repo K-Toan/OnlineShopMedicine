@@ -1,60 +1,31 @@
-﻿@model OnlineShopMedicine.Models.Medicine
+﻿@model OnlineShopMedicine.ViewModels.MedicineDetailsModel
 
 @{
     ViewData["Title"] = "Details";
+    Medicine medicine = Model.Medicine;
+    List<MedicineType> medicineTypes = Model.MedicineTypes;
 }
 
-<h1>Details</h1>
+<h1>Mua thuốc</h1>
 
-<div>
-    <h4>Medicine</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ExpiredDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ExpiredDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Image)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Image)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Descript)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Descript)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.MinAge)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.MinAge)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Category)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Category.Id)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Country)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Country.Id)
-        </dd>
-    </dl>
+<div class="row">
+    <div class="col-4" style="background-color:gray">
+    </div>
+    <div class="col-8">
+        <form asp-action="" method="post">
+            <h4>@medicine.Name</h4>
+            <p>@medicine.Descript</p>
+            @foreach (var item in medicineTypes)
+            {
+                <div>
+                    <input class="" type="radio" name="Type" value="@item.Type.Id">@item.Type.Name
+                    <label>@item.Price đ</label>
+                </div>
+            }
+            <input class="btn btn-primary" type="number" value="Số lượng" />
+            <input class="btn btn-primary" type="submit" value="Buy" />
+            <input class="btn btn-outline-primary" type="button" value="Add to Cart" />
+        </form>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+

@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using OnlineShopMedicine.Models;
+using OnlineShopMedicine.ViewModels;
 
 namespace OnlineShopMedicine.Controllers
 {
@@ -19,10 +21,48 @@ namespace OnlineShopMedicine.Controllers
         }
 
         // GET: Medicine
+        [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var appDbContext = _context.Medicines.Include(m => m.Category).Include(m => m.Country);
-            return View(await appDbContext.ToListAsync());
+            List<Medicine> medicines = _context.Medicines
+                                    .Include(m => m.Category)
+                                    .Include(m => m.Country)
+                                    .ToList();
+
+            List<Category> categories = _context.Categories
+                                        .ToList();
+
+            MedicineListModel model = new MedicineListModel
+            {
+                Medicines = medicines,
+                Categories = categories
+            };
+
+            return View(model);
+        }
+
+        // GET: Medicine
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Index(List<int>? CategoryIds)
+        {
+            List<Medicine> medicines = _context.Medicines
+                                    .Include(m => m.Category)
+                                    .Include(m => m.Country)
+                                    .Where(m => CategoryIds == null || CategoryIds.Contains(m.CategoryId))
+                                    .ToList();
+
+            List<Category> categories = _context.Categories
+                                        .ToList();
+
+            MedicineListModel model = new MedicineListModel
+            {
+                CategoryIds = CategoryIds,
+                Medicines = medicines,
+                Categories = categories
+            };
+
+            return View(model);
         }
 
         // GET: Medicine/Details/5
@@ -33,16 +73,27 @@ namespace OnlineShopMedicine.Controllers
                 return NotFound();
             }
 
-            var medicine = await _context.Medicines
-                .Include(m => m.Category)
-                .Include(m => m.Country)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (medicine == null)
-            {
-                return NotFound();
-            }
+            Medicine? medicine = await _context.Medicines
+                                .Include(m => m.Category)
+                                .Include(m => m.Country)
+                                .Include(m => m.MedicineTypes)
+                                .FirstOrDefaultAsync(m => m.Id == id);
 
-            return View(medicine);
+            List<MedicineType> medicineTypes = _context.MedicineTypes
+                                        .Include(mt => mt.Type)
+                                        .Where(mt => mt.MedicineId == medicine.Id)
+                                        .ToList();
+
+            if (medicine == null)
+                return NotFound();
+
+            MedicineDetailsModel model = new MedicineDetailsModel
+            {
+                Medicine = medicine,
+                MedicineTypes = medicineTypes,
+            };
+
+            return View(model);
         }
 
         // GET: Medicine/Create
